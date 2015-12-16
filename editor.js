@@ -4,9 +4,15 @@
  Contacts: olegbogdanov86@gmail.com
  */
 
-Vue.component('editor', {
-    props: ['id', 'value', 'lang', 'opts'],
-    template: '<textarea id="{{id}}" v-model="value"></textarea>',
+Vue.component('editor', Vue.extend({
+    props: {
+        id: { type: String },
+        value: {type: String, default: ''},
+        lang: {type: String, default: 'ru'},
+        opts: {type: Object, default: function(){ return {}; }}
+    },
+
+    template: '<textarea :id="id" v-model="value"></textarea>',
 
     ready: function(){
         var self = this,
@@ -14,19 +20,42 @@ Vue.component('editor', {
 
         self.instance;
         self.id = self.id ? self.id : 'editor-'+self.GenerateHash(15);
-        self.lang = self.lang ? self.lang : 'ru';
 
-        self.onInit('//cdn.ckeditor.com/4.5.3/full/ckeditor.js');
+        self.onInit('//cdn.ckeditor.com/4.5.6/full/ckeditor.js');
 
-        document.addEventListener("DOMContentLoaded", function(){
+        var checkInit = function(){
             var loading = setInterval(function(){
-                if (typeof(CKEDITOR) != 'undefined' && isLoad == false){
+                if(typeof CKEDITOR != undefined && isLoad == false){
+                    console.log('CKEDITOR start load');
                     self.onLoad();
                     isLoad = true;
                     clearInterval(loading);
                 }
             },500);
-        });
+        };
+
+        if(typeof $ != undefined || typeof jQuery != undefined)
+            $(document).ready(function(){ checkInit(); });
+        else
+            document.addEventListener("DOMContentLoaded", function(){ checkInit(); });
+    },
+
+    events: {
+        init: function(){
+            var self = this,
+                options = {
+                    language: self.lang,
+                    shiftEnterMode: CKEDITOR.ENTER_BR
+                };
+            self.opts = Vue.util.extend({}, options, (self.opts ? self.opts : {}));
+
+            self.instance = CKEDITOR.replace(self.id, options);
+            self.instance.on('change', self.onChange);
+            self.instance.on('pasteState', self.onChange);
+            self.instance.on('blur', self.onChange);
+
+            console.log('CKEDITOR loaded');
+        }
     },
 
     methods: {
@@ -40,17 +69,14 @@ Vue.component('editor', {
 
         onLoad: function(){
             var self = this;
+            var loading = setInterval(function(){
+                if(typeof CKEDITOR == 'object'){
+                    self.$emit('init');
+                    clearInterval(loading);
+                }
+                else return;
+            }, 250);
 
-            var options = {
-                language: self.lang,
-                shiftEnterMode: CKEDITOR.ENTER_BR
-            };
-            self.opts = Vue.util.extend({}, options, (self.opts ? self.opts : {}));
-
-            self.instance = CKEDITOR.replace(self.id, options);
-            self.instance.on('change', self.onChange);
-            self.instance.on('pasteState', self.onChange);
-            self.instance.on('blur', self.onChange);
         },
 
         onChange: function(){
@@ -76,4 +102,4 @@ Vue.component('editor', {
             return hash(S);
         }
     }
-});
+}) );
