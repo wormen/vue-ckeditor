@@ -3,7 +3,7 @@
 Использование
 
 <pre>
-  &lt;editor value=&quot;{{@ description}}&quot;&gt;&lt;/editor&gt;
+  &lt;editor :value=&quot;description&quot;&gt;&lt;/editor&gt;
 </pre>
 
 
